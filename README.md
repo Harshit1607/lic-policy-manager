@@ -29,8 +29,8 @@ A strict monochrome look (black, white and greys only): solid black header block
 
 ```
 App.tsx                 app entry: DB init, navigation container
-src/domain/             pure logic (dates, premium schedule, status, formatting) + unit tests
-src/db/                 expo-sqlite schema and CRUD for clients, policies, payments
+src/domain/             pure logic (dates, premium schedule, status, meetings, formatting) + unit tests
+src/db/                 expo-sqlite schema and CRUD for clients, policies, payments, meetings
 src/services/           aggregation, CSV/JSON export & restore, notifications, call/WhatsApp
 src/screens/            UI screens
 src/navigation/         bottom tabs + stack navigator
@@ -42,7 +42,7 @@ Requirements: Node.js 20+ and npm.
 
 ```bash
 npm install
-npm test            # unit tests (premium/due-date logic, CSV/JSON, aggregation)
+npm test            # unit tests (premium/due-date and meeting logic, CSV/JSON, aggregation)
 npm run typecheck   # TypeScript
 npx expo start      # run in Expo Go or a dev build
 ```
