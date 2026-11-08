@@ -24,6 +24,7 @@ export default function App() {
     if (handled.current === key) return;
     handled.current = key;
     navigationRef.navigate('MeetingDetail', { meetingId });
+    Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
   }, []);
 
   useEffect(() => {

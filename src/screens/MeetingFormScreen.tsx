@@ -117,8 +117,11 @@ export default function MeetingFormScreen() {
       if (meetingId) await updateMeeting(meetingId, data);
       else await createMeeting(data);
       // Ask for notification permission when the agent first sets a reminder.
-      await ensureNotificationSetup().catch(() => false);
+      const granted = await ensureNotificationSetup().catch(() => false);
       await refreshMeetingReminders();
+      if (!granted) {
+        Alert.alert('Permission needed', 'Enable notifications in system settings to get reminders.');
+      }
       navigation.goBack();
     } catch (e) {
       Alert.alert('Could not save', String(e));

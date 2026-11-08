@@ -5,6 +5,7 @@ import { Alert, ScrollView } from 'react-native';
 import { Button, Field, Screen } from '../components/ui';
 import { createClient, getClient, updateClient } from '../db/clients';
 import { isISODate } from '../domain/date';
+import { refreshMeetingReminders } from '../services/meetings';
 import type { NewClient } from '../domain/types';
 import { spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
@@ -62,8 +63,10 @@ export default function ClientFormScreen() {
     };
     setSaving(true);
     try {
-      if (clientId) await updateClient(clientId, data);
-      else await createClient(data);
+      if (clientId) {
+        await updateClient(clientId, data);
+        await refreshMeetingReminders();
+      } else await createClient(data);
       navigation.goBack();
     } catch (e) {
       Alert.alert('Could not save', String(e));
