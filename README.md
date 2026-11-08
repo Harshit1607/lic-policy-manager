@@ -57,28 +57,56 @@ Requirements:
 - Android SDK with: `platforms;android-36`, `platforms;android-37.0`, `build-tools;37.0.0`, `ndk;27.1.12297006`, `cmake;3.22.1`, `platform-tools` (install with `sdkmanager`)
 - `ANDROID_HOME` pointing at the SDK (or an `android/local.properties` with `sdk.dir=...`)
 
+- The app's permanent release keystore and its four `LIC_*` values (see [Signing](#signing))
+
 Steps:
 
 ```bash
 npm install
-npx expo prebuild --platform android --clean   # generates the android/ folder (git-ignored)
-cd android
-./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a
+export LIC_KEYSTORE=/secure/path/release.keystore
+export LIC_KEYSTORE_PASSWORD='...'
+export LIC_KEY_ALIAS='...'
+export LIC_KEY_PASSWORD='...'
+npm run build:apk
 ```
 
-The APK is written to:
+`npm run build:apk` regenerates the `android/` folder (`expo prebuild --platform android --clean`, git-ignored) and runs `./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a`. The APK is written to:
 
 ```
 android/app/build/outputs/apk/release/app-release.apk
 ```
 
-Copy it to the phone and install it (allow "Install unknown apps" for your file manager or browser). Drop `-PreactNativeArchitectures=...` to also include x86/x86_64 for emulators.
+Copy it to the phone and install it (allow "Install unknown apps" for your file manager or browser). To also include x86/x86_64 for emulators, run the prebuild and then `./gradlew assembleRelease` in `android/` without `-PreactNativeArchitectures`.
 
 ### Signing
 
-By default the generated project signs the release build with the Android debug keystore, which is fine for sideloading onto your own phone. To sign with your own key, create one with
-`keytool -genkeypair -v -keystore my-release.jks -alias lic -keyalg RSA -keysize 2048 -validity 10000`
-and add a `release` signing config in `android/app/build.gradle` as described in the [React Native signing guide](https://reactnative.dev/docs/signed-apk-android). Keep the keystore out of git (`*.jks` is ignored). Use the same key for every update, otherwise Android will refuse to install the new APK over the old one.
+Release builds are signed with the app's permanent release key. The config plugin `plugins/withReleaseSigning.js` (listed in `app.json`) adds this to the generated `android/app/build.gradle` on every prebuild, reading the key from four environment variables:
+
+| Variable | Value |
+| --- | --- |
+| `LIC_KEYSTORE` | absolute path to the release keystore file |
+| `LIC_KEYSTORE_PASSWORD` | keystore password |
+| `LIC_KEY_ALIAS` | alias of the key inside the keystore |
+| `LIC_KEY_PASSWORD` | key password (the same as the keystore password for a PKCS12 keystore) |
+
+If any of them is missing, or the keystore file does not exist, the release build stops with an error. It never falls back to the debug key. Debug builds (`npx expo run:android`) are not affected.
+
+The keystore and passwords are never committed: keep the keystore outside the repository (`.gitignore` also ignores `*.jks` and `*.keystore`). Keep the keystore file and its passwords together somewhere safe and backed up, for example a password manager plus an offline copy.
+
+**Do not lose the keystore or its passwords.** Android only installs an update over an existing app when it is signed with the same key. Without this key, a new APK can no longer be installed over the app; the agent would have to uninstall it first, which deletes all data stored on the phone (export a JSON backup before doing that).
+
+To create a key for a fork of this app (only once, then reuse it for every release):
+
+```bash
+keytool -genkeypair -v -keystore release.keystore -storetype PKCS12 -alias lic-release \
+  -keyalg RSA -keysize 4096 -validity 12000
+```
+
+To check which key signed an APK:
+
+```bash
+$ANDROID_HOME/build-tools/<version>/apksigner verify --print-certs app-release.apk
+```
 
 ## Backups
 
