@@ -21,12 +21,23 @@ export async function smsClient(phone: string, body?: string): Promise<void> {
 }
 
 /**
- * Open a WhatsApp chat with the client. WhatsApp expects the number without a
- * leading '+' or spaces. Falls back to the wa.me web link if the app scheme
- * cannot be opened.
+ * WhatsApp needs the full international number without '+' or spaces. Indian
+ * mobile numbers are usually saved as 10 digits (optionally with a leading 0),
+ * so those get the 91 country code prefixed.
+ */
+export function whatsAppNumber(phone: string): string {
+  const sanitized = sanitizePhone(phone);
+  if (sanitized.startsWith('+')) return sanitized.slice(1);
+  const digits = sanitized.replace(/^0+/, '');
+  return digits.length === 10 ? `91${digits}` : digits;
+}
+
+/**
+ * Open a WhatsApp chat with the client. Falls back to the wa.me web link if
+ * the app scheme cannot be opened.
  */
 export async function whatsAppClient(phone: string, message?: string): Promise<void> {
-  const number = sanitizePhone(phone).replace(/^\+/, '');
+  const number = whatsAppNumber(phone);
   if (!number) return;
   const text = message ? `?text=${encodeURIComponent(message)}` : '';
   const appUrl = `whatsapp://send?phone=${number}${message ? `&text=${encodeURIComponent(message)}` : ''}`;

@@ -71,11 +71,6 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
 }
 
 /** For tests/backup restore: wipe all rows (keeps schema). */
-export async function clearAllData(): Promise<void> {
-  const db = await getDatabase();
-  await db.execAsync('DELETE FROM payments; DELETE FROM policies; DELETE FROM clients;');
-}
-
 export function nowISO(): string {
   return new Date().toISOString();
 }

@@ -51,13 +51,15 @@ export async function rescheduleDueReminders(
   for (const item of items) {
     const due = item.summary.nextDueDate;
     if (!due) continue;
-    const dueMs = isoToUTC(due).getTime();
-    // Fire at 9am local a few days before the due date.
-    const triggers = [daysBefore, 0].map((d) => dueMs - d * 86_400_000);
-    for (const t of triggers) {
-      if (t <= now) continue;
-      const fireDate = new Date(t);
-      fireDate.setHours(9, 0, 0, 0);
+    const dueUTC = isoToUTC(due);
+    // Fire at 9am local time a few days before the due date and on the day.
+    for (const d of [daysBefore, 0]) {
+      const fireDate = new Date(
+        dueUTC.getUTCFullYear(),
+        dueUTC.getUTCMonth(),
+        dueUTC.getUTCDate() - d,
+        9,
+      );
       if (fireDate.getTime() <= now) continue;
       await Notifications.scheduleNotificationAsync({
         content: {

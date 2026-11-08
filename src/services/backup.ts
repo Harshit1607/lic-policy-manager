@@ -2,10 +2,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { todayISO } from '../domain/date';
-import { maturityDate } from '../domain/premium';
-import { computePolicyStatus } from '../domain/premium';
-import { statusLabel } from '../domain/premium';
-import { clearAllData, getDatabase, nowISO } from '../db/database';
+import { computePolicyStatus, maturityDate, statusLabel } from '../domain/premium';
+import { getDatabase, nowISO } from '../db/database';
 import { listClients } from '../db/clients';
 import { listPolicies } from '../db/policies';
 import { listAllPayments } from '../db/payments';
@@ -34,7 +32,7 @@ export async function exportJsonBackup(): Promise<string> {
     listPolicies(),
     listAllPayments(),
   ]);
-  const policies = policiesMeta.map(({ clientName: _c, paidCount: _p, ...rest }) => rest);
+  const policies = policiesMeta.map(({ clientName: _c, clientPhone: _ph, paidCount: _p, ...rest }) => rest);
   const backup = buildBackup(clients, policies, payments);
   const fileName = `lic-backup-${todayISO()}.json`;
   return writeAndShare(fileName, serializeBackup(backup), 'application/json');
@@ -48,7 +46,7 @@ export async function exportPoliciesCsv(): Promise<string> {
     const summary = computePolicyStatus(p, p.paidCount, today);
     return {
       clientName: p.clientName,
-      phone: null as string | null,
+      phone: p.clientPhone,
       policyNumber: p.policyNumber,
       planName: p.planName,
       sumAssured: p.sumAssured,
@@ -75,7 +73,8 @@ export interface RestoreResult {
 
 /**
  * Let the user pick a JSON backup file and replace all current data with it.
- * Returns null if the user cancels. Replaces data in a single transaction.
+ * Returns null if the user cancels. The wipe and re-insert run in a single
+ * transaction, so a failed restore leaves existing data untouched.
  */
 export async function importJsonBackup(): Promise<RestoreResult | null> {
   const picked = await DocumentPicker.getDocumentAsync({
@@ -89,10 +88,10 @@ export async function importJsonBackup(): Promise<RestoreResult | null> {
   const backup = parseBackup(raw);
 
   const db = await getDatabase();
-  await clearAllData();
   const ts = nowISO();
 
   await db.withTransactionAsync(async () => {
+    await db.execAsync('DELETE FROM payments; DELETE FROM policies; DELETE FROM clients;');
     for (const c of backup.clients) {
       await db.runAsync(
         `INSERT INTO clients (id, name, phone, address, dob, nomineeName, nomineeRelation, notes, createdAt, updatedAt)

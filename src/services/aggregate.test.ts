@@ -6,6 +6,7 @@ function makePolicy(over: Partial<PolicyWithMeta>): PolicyWithMeta {
     id: 1,
     clientId: 1,
     clientName: 'Test',
+    clientPhone: null,
     paidCount: 0,
     policyNumber: 'P1',
     planName: null,

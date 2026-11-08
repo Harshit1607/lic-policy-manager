@@ -148,7 +148,7 @@ export default function SettingsScreen() {
           </Text>
           <View style={styles.btnStack}>
             <Button
-              title="Enable &amp; refresh reminders"
+              title="Enable & refresh reminders"
               variant="secondary"
               loading={busy === 'notif'}
               onPress={() =>

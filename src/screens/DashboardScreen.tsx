@@ -7,6 +7,7 @@ import { formatCurrency, formatDate, relativeDueLabel } from '../domain/format';
 import { buildDashboard, DashboardBuckets, PolicyWithStatus } from '../services/aggregate';
 import { loadPoliciesWithStatus } from '../services/queries';
 import { rescheduleDueReminders } from '../services/notifications';
+import { callClient, premiumReminderMessage, whatsAppClient } from '../services/contact';
 import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -15,6 +16,13 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 function DueCard({ item }: { item: PolicyWithStatus }) {
   const navigation = useNavigation<Nav>();
   const { policy, summary, daysToDue } = item;
+  const phone = policy.clientPhone;
+  const reminder = premiumReminderMessage({
+    clientName: policy.clientName,
+    policyNumber: policy.policyNumber,
+    amount: formatCurrency(policy.premiumAmount),
+    dueDate: formatDate(summary.nextDueDate),
+  });
 
   return (
     <Card>
@@ -56,6 +64,24 @@ function DueCard({ item }: { item: PolicyWithStatus }) {
           <Text style={styles.actionText}>Record payment</Text>
         </TouchableOpacity>
       </Row>
+      {phone ? (
+        <Row style={styles.actions}>
+          <TouchableOpacity
+            onPress={() => callClient(phone)}
+            activeOpacity={0.7}
+            style={[styles.actionBtn, styles.callBtn]}
+          >
+            <Text style={styles.contactText}>Call</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => whatsAppClient(phone, reminder)}
+            activeOpacity={0.7}
+            style={[styles.actionBtn, styles.whatsappBtn]}
+          >
+            <Text style={styles.contactText}>WhatsApp</Text>
+          </TouchableOpacity>
+        </Row>
+      ) : null}
     </Card>
   );
 }
@@ -169,4 +195,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionText: { color: colors.primary, fontWeight: '700', fontSize: 13 },
+  callBtn: { backgroundColor: colors.primary },
+  whatsappBtn: { backgroundColor: '#25D366' },
+  contactText: { color: colors.white, fontWeight: '700', fontSize: 13 },
 });

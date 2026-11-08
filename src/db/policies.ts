@@ -1,14 +1,15 @@
 import { getDatabase, nowISO } from './database';
 import type { NewPolicy, Policy } from '../domain/types';
 
-/** A policy row joined with its client name and settled-premium count. */
+/** A policy row joined with its client name/phone and settled-premium count. */
 export interface PolicyWithMeta extends Policy {
   clientName: string;
+  clientPhone: string | null;
   paidCount: number;
 }
 
 const SELECT_WITH_META = `
-  SELECT p.*, c.name AS clientName,
+  SELECT p.*, c.name AS clientName, c.phone AS clientPhone,
     (SELECT COUNT(*) FROM payments pm WHERE pm.policyId = p.id) AS paidCount
   FROM policies p
   JOIN clients c ON c.id = p.clientId
