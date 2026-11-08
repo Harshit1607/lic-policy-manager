@@ -1,0 +1,52 @@
+{
+  "expo": {
+    "name": "LIC Policy Manager",
+    "slug": "lic-policy-manager",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "licpolicymanager",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.licagent.policymanager"
+    },
+    "android": {
+      "package": "com.licagent.policymanager",
+      "adaptiveIcon": {
+        "backgroundColor": "#111111",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "./plugins/withReleaseSigning",
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "color": "#111111"
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#111111"
+        }
+      ]
+    ]
+  }
+}
