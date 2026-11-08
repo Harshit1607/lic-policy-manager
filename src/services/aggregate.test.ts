@@ -1,4 +1,4 @@
-import { buildDashboard } from './aggregate';
+import { buildDashboard, monthlyCollection } from './aggregate';
 import type { PolicyWithMeta } from '../db/policies';
 
 function makePolicy(over: Partial<PolicyWithMeta>): PolicyWithMeta {
@@ -64,5 +64,41 @@ describe('buildDashboard', () => {
     const total =
       buckets.overdue.length + buckets.dueThisWeek.length + buckets.dueThisMonth.length;
     expect(total).toBe(1);
+  });
+});
+
+describe('monthlyCollection', () => {
+  test('sums instalments due this month and the settled share across policies', () => {
+    const paid = makePolicy({
+      id: 1,
+      premiumMode: 'monthly',
+      commencementDate: '2023-01-10',
+      premiumAmount: 1000,
+      paidCount: 13, // covers the 2024-01-10 instalment
+    });
+    const unpaid = makePolicy({
+      id: 2,
+      premiumMode: 'monthly',
+      commencementDate: '2023-01-28',
+      premiumAmount: 3000,
+      paidCount: 12, // 2024-01-28 instalment still open
+    });
+    const otherMonth = makePolicy({ id: 3, commencementDate: '2023-06-01', paidCount: 1 });
+
+    expect(monthlyCollection([paid, unpaid, otherMonth], '2024-01-05')).toEqual({
+      due: 2,
+      paid: 1,
+      dueAmount: 4000,
+      paidAmount: 1000,
+    });
+  });
+
+  test('is zero when no policies fall due this month', () => {
+    expect(monthlyCollection([], '2024-01-05')).toEqual({
+      due: 0,
+      paid: 0,
+      dueAmount: 0,
+      paidAmount: 0,
+    });
   });
 });

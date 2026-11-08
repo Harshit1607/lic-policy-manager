@@ -1,15 +1,25 @@
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Button, Card, KeyValue, Row, Screen, SectionTitle, StatusBadge } from '../components/ui';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PolicyRow } from '../components/PolicyRow';
+import {
+  Avatar,
+  Button,
+  Card,
+  HeaderBlock,
+  KeyValue,
+  Row,
+  Screen,
+  SectionHeader,
+} from '../components/ui';
 import { deleteClient, getClient } from '../db/clients';
 import { listPoliciesForClient } from '../db/policies';
 import { withStatus, PolicyWithStatus } from '../services/aggregate';
 import { callClient, whatsAppClient } from '../services/contact';
 import { formatCurrency, formatDate } from '../domain/format';
 import type { Client } from '../domain/types';
-import { colors, radius, spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -25,7 +35,7 @@ export default function ClientDetailScreen() {
   const load = useCallback(async () => {
     const c = await getClient(clientId);
     setClient(c);
-    navigation.setOptions({ title: c?.name ?? 'Client' });
+    navigation.setOptions({ title: 'Client' });
     const pols = await listPoliciesForClient(clientId);
     setPolicies(pols.map((p) => withStatus(p)));
   }, [clientId, navigation]);
@@ -52,24 +62,57 @@ export default function ClientDetailScreen() {
 
   if (!client) return <Screen />;
 
+  const totalSA = policies.reduce((acc, p) => acc + p.policy.sumAssured, 0);
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
+        <HeaderBlock style={styles.profile}>
+          <View style={styles.profileInner}>
+            <Avatar name={client.name} size={84} />
+            <Text style={styles.name}>{client.name}</Text>
+            {client.phone ? <Text style={styles.phone}>{client.phone}</Text> : null}
+          </View>
+        </HeaderBlock>
+
+        <Card style={styles.summaryPill}>
+          <Text style={styles.summaryText}>
+            {policies.length} polic{policies.length === 1 ? 'y' : 'ies'} · SA {formatCurrency(totalSA)}
+          </Text>
+        </Card>
+
+        {client.phone ? (
+          <Row style={styles.contactRow}>
+            <Button
+              title="Call"
+              icon="phone"
+              chevron={false}
+              onPress={() => callClient(client.phone!)}
+              style={styles.flexBtn}
+            />
+            <Button
+              title="WhatsApp"
+              icon="chat"
+              variant="secondary"
+              onPress={() => whatsAppClient(client.phone!)}
+              style={styles.flexBtn}
+            />
+          </Row>
+        ) : null}
+
+        <SectionHeader
+          title={`Policies (${policies.length})`}
+          actionLabel="Add policy"
+          onAction={() => navigation.navigate('PolicyForm', { clientId })}
+        />
+        {policies.length === 0 ? (
+          <Text style={styles.noPolicy}>No policies yet for this client.</Text>
+        ) : (
+          policies.map((item) => <PolicyRow key={item.policy.id} item={item} showClient={false} />)
+        )}
+
+        <SectionHeader title="Details" />
         <Card>
-          <Text style={styles.name}>{client.name}</Text>
-          {client.phone ? (
-            <Row style={styles.contactRow}>
-              <TouchableOpacity style={styles.contactBtn} onPress={() => callClient(client.phone!)}>
-                <Text style={styles.contactText}>Call</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.contactBtn, styles.whatsapp]}
-                onPress={() => whatsAppClient(client.phone!)}
-              >
-                <Text style={styles.contactText}>WhatsApp</Text>
-              </TouchableOpacity>
-            </Row>
-          ) : null}
           {client.phone ? <KeyValue label="Phone" value={client.phone} /> : null}
           {client.dob ? <KeyValue label="Date of birth" value={formatDate(client.dob)} /> : null}
           {client.address ? <KeyValue label="Address" value={client.address} /> : null}
@@ -80,78 +123,42 @@ export default function ClientDetailScreen() {
             />
           ) : null}
           {client.notes ? <KeyValue label="Notes" value={client.notes} /> : null}
+          {!client.phone && !client.dob && !client.address && !client.nomineeName && !client.notes ? (
+            <Text style={styles.muted}>No extra details saved.</Text>
+          ) : null}
           <Row style={styles.editRow}>
             <Button
               title="Edit"
+              icon="edit"
               variant="secondary"
+              chevron={false}
               onPress={() => navigation.navigate('ClientForm', { clientId })}
               style={styles.flexBtn}
             />
             <Button title="Delete" variant="danger" onPress={confirmDelete} style={styles.flexBtn} />
           </Row>
         </Card>
-
-        <Row style={styles.polHead}>
-          <SectionTitle>Policies ({policies.length})</SectionTitle>
-          <TouchableOpacity onPress={() => navigation.navigate('PolicyForm', { clientId })}>
-            <Text style={styles.addPolicy}>+ Add policy</Text>
-          </TouchableOpacity>
-        </Row>
-
-        {policies.length === 0 ? (
-          <Text style={styles.noPolicy}>No policies yet for this client.</Text>
-        ) : (
-          policies.map(({ policy, summary }) => (
-            <TouchableOpacity
-              key={policy.id}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate('PolicyDetail', { policyId: policy.id })}
-            >
-              <Card>
-                <Row style={styles.cardHead}>
-                  <Text style={styles.policyNo}>{policy.policyNumber}</Text>
-                  <StatusBadge status={summary.status} />
-                </Row>
-                {policy.planName ? <Text style={styles.plan}>{policy.planName}</Text> : null}
-                <Row style={styles.metaRow}>
-                  <Text style={styles.meta}>SA {formatCurrency(policy.sumAssured)}</Text>
-                  <Text style={styles.meta}>
-                    {formatCurrency(policy.premiumAmount)} · {policy.premiumMode}
-                  </Text>
-                </Row>
-                <Text style={styles.next}>
-                  {summary.nextDueDate ? `Next due ${formatDate(summary.nextDueDate)}` : 'No premium due'}
-                </Text>
-              </Card>
-            </TouchableOpacity>
-          ))
-        )}
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  name: { fontSize: 22, fontWeight: '800', color: colors.text, marginBottom: spacing.sm },
-  contactRow: { gap: spacing.sm, marginBottom: spacing.md },
-  contactBtn: {
-    flex: 1,
-    backgroundColor: colors.primary,
+  profile: { paddingBottom: spacing.xxl + spacing.lg },
+  profileInner: { alignItems: 'center' },
+  name: { color: colors.white, fontSize: 20, fontWeight: '800', marginTop: spacing.md, textAlign: 'center' },
+  phone: { color: colors.onBlackMuted, fontSize: 14, marginTop: 2 },
+  summaryPill: {
+    marginTop: -spacing.xl,
+    marginHorizontal: spacing.xxl + spacing.lg,
+    borderRadius: 14,
     paddingVertical: spacing.md,
-    borderRadius: radius.sm,
     alignItems: 'center',
   },
-  whatsapp: { backgroundColor: '#25D366' },
-  contactText: { color: colors.white, fontWeight: '700' },
-  editRow: { gap: spacing.sm, marginTop: spacing.md },
+  summaryText: { fontSize: 15, fontWeight: '800', color: colors.text },
+  contactRow: { gap: spacing.sm, marginHorizontal: spacing.lg, marginTop: spacing.md },
+  editRow: { gap: spacing.sm, marginTop: spacing.lg },
   flexBtn: { flex: 1 },
-  polHead: { justifyContent: 'space-between', alignItems: 'center', paddingRight: spacing.lg },
-  addPolicy: { color: colors.primary, fontWeight: '700', marginTop: spacing.lg },
+  muted: { color: colors.textMuted },
   noPolicy: { color: colors.textMuted, marginHorizontal: spacing.lg, marginTop: spacing.sm },
-  cardHead: { justifyContent: 'space-between' },
-  policyNo: { fontSize: 16, fontWeight: '700', color: colors.text },
-  plan: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  metaRow: { justifyContent: 'space-between', marginTop: spacing.sm },
-  meta: { fontSize: 13, color: colors.text },
-  next: { fontSize: 13, color: colors.textMuted, marginTop: spacing.xs },
 });

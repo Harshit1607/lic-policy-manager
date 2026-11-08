@@ -17,7 +17,7 @@
     "android": {
       "package": "com.licagent.policymanager",
       "adaptiveIcon": {
-        "backgroundColor": "#0B6E4F",
+        "backgroundColor": "#111111",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
@@ -34,7 +34,7 @@
       [
         "expo-notifications",
         {
-          "color": "#0B6E4F"
+          "color": "#111111"
         }
       ],
       "expo-sharing",
@@ -43,7 +43,7 @@
         {
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#0B6E4F"
+          "backgroundColor": "#111111"
         }
       ]
     ]

@@ -116,6 +116,45 @@ export function computePolicyStatus(
   };
 }
 
+/** Instalments of one policy that fall due in a calendar month, and how many are settled. */
+export interface MonthInstalments {
+  due: number;
+  paid: number;
+  dueAmount: number;
+  paidAmount: number;
+}
+
+/**
+ * Count the scheduled instalments whose due date falls in the calendar month
+ * containing `referenceDate`, and how many of those are settled. Settlement
+ * follows {@link computePolicyStatus}: instalment `i` is settled when
+ * `i < paidCount`.
+ */
+export function instalmentsInMonth(
+  policy: PremiumSchedulable,
+  paidCount: number,
+  referenceDate: ISODate = todayISO(),
+): MonthInstalments {
+  const monthKey = referenceDate.slice(0, 7);
+  const total = totalPremiums(policy);
+  let due = 0;
+  let paid = 0;
+  for (let i = 0; i < total; i++) {
+    const key = dueDateForIndex(policy, i).slice(0, 7);
+    if (key > monthKey) break;
+    if (key === monthKey) {
+      due += 1;
+      if (i < paidCount) paid += 1;
+    }
+  }
+  return {
+    due,
+    paid,
+    dueAmount: due * policy.premiumAmount,
+    paidAmount: paid * policy.premiumAmount,
+  };
+}
+
 /** Number of settled instalments implied by a payment list. */
 export function paidCountFromPayments(payments: Pick<Payment, 'id'>[]): number {
   return payments.length;

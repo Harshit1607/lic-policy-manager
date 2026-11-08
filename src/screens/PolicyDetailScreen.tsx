@@ -2,7 +2,19 @@ import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navig
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Button, Card, KeyValue, Row, Screen, SectionTitle, StatusBadge } from '../components/ui';
+import {
+  Button,
+  Card,
+  CircleIcon,
+  HeaderBlock,
+  KeyValue,
+  ListRow,
+  ProgressBar,
+  Row,
+  Screen,
+  SectionHeader,
+  StatusBadge,
+} from '../components/ui';
 import { getClient } from '../db/clients';
 import { deletePolicy, getPolicy, PolicyWithMeta } from '../db/policies';
 import { deletePayment, listPayments } from '../db/payments';
@@ -10,7 +22,7 @@ import { computePolicyStatus, maturityDate, statusLabel, totalCommission } from 
 import { formatCurrency, formatDate } from '../domain/format';
 import { callClient, premiumReminderMessage, whatsAppClient } from '../services/contact';
 import type { Client, Payment, PolicyStatusSummary } from '../domain/types';
-import { colors, radius, spacing, statusColor } from '../theme';
+import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -80,113 +92,133 @@ export default function PolicyDetailScreen() {
     amount: formatCurrency(policy.premiumAmount),
     dueDate: formatDate(summary.nextDueDate),
   });
+  const paidShare = summary.totalPremiums > 0 ? summary.paidCount / summary.totalPremiums : 0;
 
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }}>
-        <View style={[styles.statusHeader, { backgroundColor: statusColor[summary.status] }]}>
-          <Text style={styles.statusHeaderLabel}>{statusLabel(summary.status)}</Text>
-          <Text style={styles.statusHeaderClient}>{policy.clientName}</Text>
-          {summary.nextDueDate ? (
-            <Text style={styles.statusHeaderDue}>
-              Next premium {formatCurrency(policy.premiumAmount)} on {formatDate(summary.nextDueDate)}
-            </Text>
-          ) : (
-            <Text style={styles.statusHeaderDue}>No further premium due</Text>
-          )}
+        <HeaderBlock>
+          <StatusBadge status={summary.status} onBlack />
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate('ClientDetail', { clientId: policy.clientId })}
+          >
+            <Text style={styles.client}>{policy.clientName}</Text>
+          </TouchableOpacity>
+          <Text style={styles.due}>
+            {summary.nextDueDate
+              ? `Next premium ${formatCurrency(policy.premiumAmount)} on ${formatDate(summary.nextDueDate)}`
+              : 'No further premium due'}
+          </Text>
           {summary.overdueAmount > 0 ? (
-            <Text style={styles.statusHeaderOverdue}>
+            <Text style={styles.overdue}>
               Overdue {formatCurrency(summary.overdueAmount)} ({summary.overdueCount} premium
               {summary.overdueCount === 1 ? '' : 's'})
             </Text>
           ) : null}
-        </View>
+          <ProgressBar value={paidShare} onBlack style={styles.bar} />
+          <Text style={styles.barLabel}>
+            {summary.paidCount} of {summary.totalPremiums} premiums paid
+          </Text>
+        </HeaderBlock>
 
+        <Row style={styles.actionRow}>
+          <Button
+            title="Record payment"
+            onPress={() => navigation.navigate('PaymentForm', { policyId })}
+            style={styles.flexBtn}
+          />
+        </Row>
         {client?.phone ? (
-          <Row style={styles.contactRow}>
-            <TouchableOpacity style={styles.contactBtn} onPress={() => callClient(client.phone!)}>
-              <Text style={styles.contactText}>Call</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.contactBtn, styles.whatsapp]}
+          <Row style={styles.actionRow}>
+            <Button
+              title="Call"
+              icon="phone"
+              variant="secondary"
+              chevron={false}
+              onPress={() => callClient(client.phone!)}
+              style={styles.flexBtn}
+            />
+            <Button
+              title="WhatsApp"
+              icon="chat"
+              variant="secondary"
+              chevron={false}
               onPress={() => whatsAppClient(client.phone!, reminder)}
-            >
-              <Text style={styles.contactText}>WhatsApp reminder</Text>
-            </TouchableOpacity>
+              style={styles.flexBtn}
+            />
           </Row>
         ) : null}
 
+        <SectionHeader title="Premium status" />
         <Card>
-          <SectionTitle>Premium status</SectionTitle>
-          <KeyValue label="Status" value={statusLabel(summary.status)} />
+          <KeyValue label="Status" value={statusLabel(summary.status)} strong />
           <KeyValue label="Next due date" value={formatDate(summary.nextDueDate)} />
           <KeyValue label="Grace period ends" value={formatDate(summary.graceEndDate)} />
-          <KeyValue
-            label="Premiums paid"
-            value={`${summary.paidCount} of ${summary.totalPremiums}`}
-          />
-          <KeyValue label="Overdue amount" value={formatCurrency(summary.overdueAmount)} />
+          <KeyValue label="Premiums paid" value={`${summary.paidCount} of ${summary.totalPremiums}`} />
+          <KeyValue label="Overdue amount" value={formatCurrency(summary.overdueAmount)} strong />
         </Card>
 
+        <SectionHeader title="Policy details" />
         <Card>
-          <SectionTitle>Policy details</SectionTitle>
           {policy.planName ? <KeyValue label="Plan" value={policy.planName} /> : null}
           {policy.planNumber ? <KeyValue label="Plan number" value={policy.planNumber} /> : null}
-          <KeyValue label="Sum assured" value={formatCurrency(policy.sumAssured)} />
-          <KeyValue
-            label="Premium"
-            value={`${formatCurrency(policy.premiumAmount)} · ${policy.premiumMode}`}
-          />
+          <KeyValue label="Sum assured" value={formatCurrency(policy.sumAssured)} strong />
+          <KeyValue label="Premium" value={`${formatCurrency(policy.premiumAmount)} · ${policy.premiumMode}`} />
           <KeyValue label="Commencement" value={formatDate(policy.commencementDate)} />
           <KeyValue label="Maturity" value={formatDate(maturityDate(policy))} />
           <KeyValue label="Policy term" value={`${policy.policyTermYears} years`} />
           <KeyValue label="Premium paying term" value={`${policy.premiumPayingTermYears} years`} />
           <KeyValue label="Commission rate" value={`${policy.commissionRate}%`} />
-          <KeyValue label="Commission earned" value={formatCurrency(commission)} />
+          <KeyValue label="Commission earned" value={formatCurrency(commission)} strong />
           {policy.notes ? <KeyValue label="Notes" value={policy.notes} /> : null}
+          <Row style={styles.editRow}>
+            <Button
+              title="Edit"
+              icon="edit"
+              variant="secondary"
+              chevron={false}
+              onPress={() => navigation.navigate('PolicyForm', { policyId })}
+              style={styles.flexBtn}
+            />
+            <Button title="Delete" variant="danger" onPress={confirmDeletePolicy} style={styles.flexBtn} />
+          </Row>
         </Card>
 
-        <Row style={styles.editRow}>
-          <Button
-            title="Edit"
-            variant="secondary"
-            onPress={() => navigation.navigate('PolicyForm', { policyId })}
-            style={styles.flexBtn}
-          />
-          <Button title="Delete" variant="danger" onPress={confirmDeletePolicy} style={styles.flexBtn} />
-        </Row>
-
-        <Row style={styles.payHead}>
-          <SectionTitle>Payments ({payments.length})</SectionTitle>
-          <TouchableOpacity onPress={() => navigation.navigate('PaymentForm', { policyId })}>
-            <Text style={styles.addPay}>+ Record payment</Text>
-          </TouchableOpacity>
-        </Row>
-
+        <SectionHeader
+          title={`Payments (${payments.length})`}
+          actionLabel="Record"
+          onAction={() => navigation.navigate('PaymentForm', { policyId })}
+        />
         {payments.length === 0 ? (
           <Text style={styles.noPay}>No payments recorded yet.</Text>
         ) : (
           payments.map((pm) => (
-            <Card key={pm.id}>
-              <Row style={styles.payRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.payAmount}>{formatCurrency(pm.amount)}</Text>
-                  <Text style={styles.paySub}>
-                    Paid {formatDate(pm.paidDate)}
-                    {pm.dueDate ? ` · for due ${formatDate(pm.dueDate)}` : ''}
-                  </Text>
-                  {pm.receiptNumber ? (
-                    <Text style={styles.paySub}>Receipt {pm.receiptNumber}</Text>
-                  ) : null}
-                  {pm.lateFee > 0 ? (
-                    <Text style={styles.paySub}>Late fee {formatCurrency(pm.lateFee)}</Text>
-                  ) : null}
-                </View>
-                <TouchableOpacity onPress={() => confirmDeletePayment(pm.id)}>
-                  <Text style={styles.deletePay}>Delete</Text>
+            <ListRow
+              key={pm.id}
+              title={formatCurrency(pm.amount)}
+              subtitle={`Paid ${formatDate(pm.paidDate)}${pm.dueDate ? ` · for due ${formatDate(pm.dueDate)}` : ''}`}
+              meta={
+                [
+                  pm.receiptNumber ? `Receipt ${pm.receiptNumber}` : null,
+                  pm.lateFee > 0 ? `Late fee ${formatCurrency(pm.lateFee)}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || null
+              }
+              trailing={
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Delete payment"
+                  onPress={() => confirmDeletePayment(pm.id)}
+                  hitSlop={8}
+                >
+                  <View style={styles.trashWrap}>
+                    <CircleIcon name="trash" />
+                  </View>
                 </TouchableOpacity>
-              </Row>
-            </Card>
+              }
+            />
           ))
         )}
       </ScrollView>
@@ -195,34 +227,14 @@ export default function PolicyDetailScreen() {
 }
 
 const styles = StyleSheet.create({
-  statusHeader: { padding: spacing.xl, margin: spacing.lg, borderRadius: radius.lg },
-  statusHeaderLabel: {
-    color: colors.white,
-    fontSize: 13,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  statusHeaderClient: { color: colors.white, fontSize: 22, fontWeight: '800', marginTop: spacing.xs },
-  statusHeaderDue: { color: colors.white, fontSize: 14, marginTop: spacing.xs, opacity: 0.95 },
-  statusHeaderOverdue: { color: colors.white, fontSize: 14, fontWeight: '800', marginTop: spacing.xs },
-  contactRow: { gap: spacing.sm, marginHorizontal: spacing.lg, marginBottom: spacing.sm },
-  contactBtn: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
-    borderRadius: radius.sm,
-    alignItems: 'center',
-  },
-  whatsapp: { backgroundColor: '#25D366' },
-  contactText: { color: colors.white, fontWeight: '700' },
-  editRow: { gap: spacing.sm, marginHorizontal: spacing.lg, marginTop: spacing.sm },
+  client: { color: colors.white, fontSize: 24, fontWeight: '800', marginTop: spacing.md },
+  due: { color: colors.onBlackMuted, fontSize: 14, marginTop: spacing.xs },
+  overdue: { color: colors.white, fontSize: 14, fontWeight: '800', marginTop: spacing.xs },
+  bar: { marginTop: spacing.lg },
+  barLabel: { color: colors.onBlackMuted, fontSize: 12, marginTop: spacing.xs },
+  actionRow: { gap: spacing.sm, marginHorizontal: spacing.lg, marginTop: spacing.md },
+  editRow: { gap: spacing.sm, marginTop: spacing.lg },
   flexBtn: { flex: 1 },
-  payHead: { justifyContent: 'space-between', alignItems: 'center', paddingRight: spacing.lg },
-  addPay: { color: colors.primary, fontWeight: '700', marginTop: spacing.lg },
   noPay: { color: colors.textMuted, marginHorizontal: spacing.lg, marginTop: spacing.sm },
-  payRow: { justifyContent: 'space-between', alignItems: 'center' },
-  payAmount: { fontSize: 16, fontWeight: '800', color: colors.text },
-  paySub: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  deletePay: { color: colors.danger, fontWeight: '700', fontSize: 13 },
+  trashWrap: { padding: 2 },
 });

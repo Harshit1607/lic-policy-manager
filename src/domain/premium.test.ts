@@ -4,6 +4,7 @@ import {
   dueCountAsOf,
   dueDateForIndex,
   graceEndForDueDate,
+  instalmentsInMonth,
   maturityDate,
   totalCommission,
   totalPremiums,
@@ -147,5 +148,34 @@ describe('commission', () => {
     expect(
       totalCommission({ commissionRate: 5 }, [{ amount: 25000 }, { amount: 25000 }, { amount: 25000 }]),
     ).toBe(3750);
+  });
+});
+
+describe('instalmentsInMonth', () => {
+  test('monthly policy has one instalment per month; settled when paidCount covers it', () => {
+    // monthly from 2023-01-15: index 12 falls on 2024-01-15
+    expect(instalmentsInMonth(monthly, 12, '2024-01-03')).toEqual({
+      due: 1,
+      paid: 0,
+      dueAmount: 2000,
+      paidAmount: 0,
+    });
+    expect(instalmentsInMonth(monthly, 13, '2024-01-31')).toEqual({
+      due: 1,
+      paid: 1,
+      dueAmount: 2000,
+      paidAmount: 2000,
+    });
+  });
+
+  test('yearly policy only counts in its anniversary month', () => {
+    expect(instalmentsInMonth(yearly, 4, '2024-04-01').due).toBe(1);
+    expect(instalmentsInMonth(yearly, 4, '2024-05-01').due).toBe(0);
+  });
+
+  test('nothing is due after the premium paying term ends', () => {
+    // monthly paying term is 10 years: last instalment 2032-12-15
+    expect(instalmentsInMonth(monthly, 0, '2032-12-01').due).toBe(1);
+    expect(instalmentsInMonth(monthly, 0, '2033-01-01').due).toBe(0);
   });
 });

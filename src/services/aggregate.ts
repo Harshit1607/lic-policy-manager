@@ -1,5 +1,5 @@
 import { diffDays, ISODate, todayISO } from '../domain/date';
-import { computePolicyStatus } from '../domain/premium';
+import { computePolicyStatus, instalmentsInMonth, MonthInstalments } from '../domain/premium';
 import type { PolicyStatusSummary } from '../domain/types';
 import type { PolicyWithMeta } from '../db/policies';
 
@@ -55,4 +55,24 @@ export function buildDashboard(
   dueThisMonth.sort(byDue);
 
   return { overdue, dueThisWeek, dueThisMonth, totalOverdueAmount };
+}
+
+/**
+ * Premium collection for the calendar month containing `referenceDate`: how
+ * many instalments across all policies fall due this month and how many of
+ * them are already settled.
+ */
+export function monthlyCollection(
+  policies: PolicyWithMeta[],
+  referenceDate: ISODate = todayISO(),
+): MonthInstalments {
+  const totals: MonthInstalments = { due: 0, paid: 0, dueAmount: 0, paidAmount: 0 };
+  for (const p of policies) {
+    const m = instalmentsInMonth(p, p.paidCount, referenceDate);
+    totals.due += m.due;
+    totals.paid += m.paid;
+    totals.dueAmount += m.dueAmount;
+    totals.paidAmount += m.paidAmount;
+  }
+  return totals;
 }

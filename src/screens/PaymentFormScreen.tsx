@@ -2,6 +2,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
+import { Icon } from '../components/Icon';
 import { Button, Card, Field, Screen } from '../components/ui';
 import { getPolicy } from '../db/policies';
 import { countPayments, createPayment } from '../db/payments';
@@ -87,6 +88,7 @@ export default function PaymentFormScreen() {
       <ScrollView contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}>
         {info ? (
           <Card style={styles.infoCard}>
+            <Icon name="calendar" color={colors.white} size={22} />
             <Text style={styles.infoText}>{info}</Text>
           </Card>
         ) : null}
@@ -120,6 +122,14 @@ export default function PaymentFormScreen() {
 }
 
 const styles = StyleSheet.create({
-  infoCard: { marginHorizontal: 0, backgroundColor: colors.primaryLight, borderColor: colors.primaryLight },
-  infoText: { color: colors.primaryDark, fontSize: 13 },
+  infoCard: {
+    marginHorizontal: 0,
+    marginTop: 0,
+    marginBottom: spacing.lg,
+    backgroundColor: colors.black,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  infoText: { color: colors.white, fontSize: 13, lineHeight: 19, flex: 1 },
 });

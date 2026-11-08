@@ -20,6 +20,10 @@ Everything is stored on the phone in a local SQLite database. There are no accou
 - **Commission tracking:** commission earned per policy and in total, based on each policy's commission rate and its recorded payments.
 - **Export and backup:** CSV export of all policies (opens in Excel or Google Sheets), full JSON backup through the Android share sheet, and JSON restore.
 
+## Design
+
+A strict monochrome look (black, white and greys only): solid black header blocks with blob and wavy line-art shapes, outlined cards, a pill search field, filled-black primary and outlined secondary buttons, and original line illustrations for the welcome and empty screens. Policy status is shown by badge weight and icon rather than colour: lapsed is a filled black badge, overdue a heavy outline, due soon a regular outline, and settled states a soft grey. The dashboard's progress ring shows how many of this month's premium instalments are already collected. All colours live in `src/theme.ts`.
+
 ## Project layout
 
 ```
