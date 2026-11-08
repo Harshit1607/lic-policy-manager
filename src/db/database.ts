@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS policies (
   premiumAmount REAL NOT NULL DEFAULT 0,
   premiumMode TEXT NOT NULL DEFAULT 'yearly',
   commissionRate REAL NOT NULL DEFAULT 0,
+  premiumsPaidUpTo TEXT,
   notes TEXT,
   createdAt TEXT NOT NULL,
   updatedAt TEXT NOT NULL
@@ -64,13 +65,17 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
     dbPromise = (async () => {
       const db = await SQLite.openDatabaseAsync(DB_NAME);
       await db.execAsync(SCHEMA);
+      const cols = await db.getAllAsync<{ name: string }>('PRAGMA table_info(policies)');
+      if (!cols.some((c) => c.name === 'premiumsPaidUpTo')) {
+        await db.execAsync('ALTER TABLE policies ADD COLUMN premiumsPaidUpTo TEXT');
+      }
       return db;
     })();
   }
   return dbPromise;
 }
 
-/** For tests/backup restore: wipe all rows (keeps schema). */
+/** Current time as an ISO-8601 timestamp. */
 export function nowISO(): string {
   return new Date().toISOString();
 }

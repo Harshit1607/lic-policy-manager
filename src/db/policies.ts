@@ -47,8 +47,8 @@ export async function createPolicy(data: NewPolicy): Promise<number> {
   const result = await db.runAsync(
     `INSERT INTO policies
       (clientId, policyNumber, planName, planNumber, sumAssured, commencementDate,
-       policyTermYears, premiumPayingTermYears, premiumAmount, premiumMode, commissionRate, notes, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       policyTermYears, premiumPayingTermYears, premiumAmount, premiumMode, commissionRate, premiumsPaidUpTo, notes, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       data.clientId,
       data.policyNumber,
@@ -61,6 +61,7 @@ export async function createPolicy(data: NewPolicy): Promise<number> {
       data.premiumAmount,
       data.premiumMode,
       data.commissionRate,
+      data.premiumsPaidUpTo,
       data.notes,
       ts,
       ts,
@@ -74,7 +75,7 @@ export async function updatePolicy(id: number, data: NewPolicy): Promise<void> {
   await db.runAsync(
     `UPDATE policies SET
       clientId = ?, policyNumber = ?, planName = ?, planNumber = ?, sumAssured = ?, commencementDate = ?,
-      policyTermYears = ?, premiumPayingTermYears = ?, premiumAmount = ?, premiumMode = ?, commissionRate = ?, notes = ?, updatedAt = ?
+      policyTermYears = ?, premiumPayingTermYears = ?, premiumAmount = ?, premiumMode = ?, commissionRate = ?, premiumsPaidUpTo = ?, notes = ?, updatedAt = ?
      WHERE id = ?`,
     [
       data.clientId,
@@ -88,6 +89,7 @@ export async function updatePolicy(id: number, data: NewPolicy): Promise<void> {
       data.premiumAmount,
       data.premiumMode,
       data.commissionRate,
+      data.premiumsPaidUpTo,
       data.notes,
       nowISO(),
       id,

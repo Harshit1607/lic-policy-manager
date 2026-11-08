@@ -114,8 +114,8 @@ export async function importJsonBackup(): Promise<RestoreResult | null> {
       await db.runAsync(
         `INSERT INTO policies
           (id, clientId, policyNumber, planName, planNumber, sumAssured, commencementDate,
-           policyTermYears, premiumPayingTermYears, premiumAmount, premiumMode, commissionRate, notes, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           policyTermYears, premiumPayingTermYears, premiumAmount, premiumMode, commissionRate, premiumsPaidUpTo, notes, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           p.id,
           p.clientId,
@@ -129,6 +129,7 @@ export async function importJsonBackup(): Promise<RestoreResult | null> {
           p.premiumAmount ?? 0,
           p.premiumMode ?? 'yearly',
           p.commissionRate ?? 0,
+          p.premiumsPaidUpTo ?? null,
           p.notes ?? null,
           p.createdAt ?? ts,
           p.updatedAt ?? ts,

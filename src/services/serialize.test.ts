@@ -27,6 +27,7 @@ const policy: Policy = {
   premiumAmount: 25000,
   premiumMode: 'yearly',
   commissionRate: 5,
+  premiumsPaidUpTo: null,
   notes: null,
   createdAt: 't',
   updatedAt: 't',

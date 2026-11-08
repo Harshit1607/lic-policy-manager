@@ -62,6 +62,8 @@ export interface Policy {
   premiumMode: PremiumMode;
   /** Agent commission percentage applied to each premium (0-100). */
   commissionRate: number;
+  /** Due date of the last premium paid before the policy was entered in the app; null = none. */
+  premiumsPaidUpTo: ISODate | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;

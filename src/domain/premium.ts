@@ -17,6 +17,7 @@ export interface PremiumSchedulable {
   premiumPayingTermYears: number;
   premiumMode: PremiumMode;
   premiumAmount: number;
+  premiumsPaidUpTo?: ISODate | null;
 }
 
 /** Total number of premium instalments across the premium paying term. */
@@ -62,11 +63,21 @@ export function dueCountAsOf(policy: PremiumSchedulable, asOf: ISODate): number 
 }
 
 /**
+ * Instalments settled: those due on or before `premiumsPaidUpTo` plus
+ * `recordedPayments` made in the app, capped at the total number of premiums.
+ */
+export function settledCount(policy: PremiumSchedulable, recordedPayments: number): number {
+  const opening = policy.premiumsPaidUpTo ? dueCountAsOf(policy, policy.premiumsPaidUpTo) : 0;
+  return Math.max(0, Math.min(opening + recordedPayments, totalPremiums(policy)));
+}
+
+/**
  * Derive the full premium status of a policy.
  *
  * Payments are applied against the earliest unpaid scheduled due dates in
- * order, so `paidCount` instalments settle due dates 0..paidCount-1 and the
- * next unpaid due date is index `paidCount`.
+ * order on top of the `premiumsPaidUpTo` baseline (see {@link settledCount}),
+ * so N settled instalments cover due dates 0..N-1 and the next unpaid due date
+ * is index N. A premium counts as overdue only once its due date has passed.
  */
 export function computePolicyStatus(
   policy: PremiumSchedulable,
@@ -76,9 +87,9 @@ export function computePolicyStatus(
 ): PolicyStatusSummary {
   const total = totalPremiums(policy);
   const matureOn = maturityDate(policy);
-  const clampedPaid = Math.max(0, Math.min(paidCount, total));
+  const clampedPaid = settledCount(policy, paidCount);
 
-  const reached = dueCountAsOf(policy, referenceDate);
+  const reached = dueCountAsOf(policy, addDays(referenceDate, -1));
   const overdueCount = Math.max(0, reached - clampedPaid);
   const overdueAmount = overdueCount * policy.premiumAmount;
 
@@ -128,7 +139,7 @@ export interface MonthInstalments {
  * Count the scheduled instalments whose due date falls in the calendar month
  * containing `referenceDate`, and how many of those are settled. Settlement
  * follows {@link computePolicyStatus}: instalment `i` is settled when
- * `i < paidCount`.
+ * `i < settledCount(policy, paidCount)`.
  */
 export function instalmentsInMonth(
   policy: PremiumSchedulable,
@@ -137,6 +148,7 @@ export function instalmentsInMonth(
 ): MonthInstalments {
   const monthKey = referenceDate.slice(0, 7);
   const total = totalPremiums(policy);
+  const settled = settledCount(policy, paidCount);
   let due = 0;
   let paid = 0;
   for (let i = 0; i < total; i++) {
@@ -144,7 +156,7 @@ export function instalmentsInMonth(
     if (key > monthKey) break;
     if (key === monthKey) {
       due += 1;
-      if (i < paidCount) paid += 1;
+      if (i < settled) paid += 1;
     }
   }
   return {

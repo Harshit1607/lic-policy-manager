@@ -31,15 +31,31 @@ export async function ensureNotificationSetup(): Promise<boolean> {
   return granted;
 }
 
+/** Only dues this many days ahead get reminders; refreshed on every Dashboard visit. */
+const HORIZON_DAYS = 45;
+/** Two alarms per policy; keeps well under Android's ~500 alarms-per-app cap. */
+const MAX_POLICIES = 100;
+
+let pending: Promise<unknown> = Promise.resolve();
+
+/** Run reminder jobs one at a time so a cancel never interleaves with a schedule. */
+function serialized<T>(job: () => Promise<T>): Promise<T> {
+  const run = pending.then(job);
+  pending = run.catch(() => undefined);
+  return run;
+}
+
 /**
  * Reschedule local reminders for upcoming premium dues. Cancels all previously
  * scheduled reminders and schedules one notification a few days before each
- * upcoming due date (and on the due date itself). Local only; no network.
+ * due date within the next {@link HORIZON_DAYS} days (and on the due date
+ * itself), soonest first. Local only; no network.
  */
-export async function rescheduleDueReminders(
-  items: PolicyWithStatus[],
-  daysBefore = 3,
-): Promise<number> {
+export function rescheduleDueReminders(items: PolicyWithStatus[], daysBefore = 3): Promise<number> {
+  return serialized(() => scheduleDueReminders(items, daysBefore));
+}
+
+async function scheduleDueReminders(items: PolicyWithStatus[], daysBefore: number): Promise<number> {
   const granted = await ensureNotificationSetup();
   if (!granted) return 0;
 
@@ -48,7 +64,12 @@ export async function rescheduleDueReminders(
   const now = Date.now();
   let scheduled = 0;
 
-  for (const item of items) {
+  const upcoming = items
+    .filter((i) => i.daysToDue !== null && i.daysToDue >= 0 && i.daysToDue <= HORIZON_DAYS)
+    .sort((a, b) => a.daysToDue! - b.daysToDue!)
+    .slice(0, MAX_POLICIES);
+
+  for (const item of upcoming) {
     const due = item.summary.nextDueDate;
     if (!due) continue;
     const dueUTC = isoToUTC(due);
@@ -76,8 +97,4 @@ export async function rescheduleDueReminders(
     }
   }
   return scheduled;
-}
-
-export async function cancelAllReminders(): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
 }

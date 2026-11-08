@@ -18,6 +18,7 @@ function makePolicy(over: Partial<PolicyWithMeta>): PolicyWithMeta {
     premiumAmount: 10000,
     premiumMode: 'yearly',
     commissionRate: 5,
+    premiumsPaidUpTo: null,
     notes: null,
     createdAt: 't',
     updatedAt: 't',

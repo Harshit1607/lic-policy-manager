@@ -131,10 +131,57 @@ describe('computePolicyStatus', () => {
     expect(s.status).toBe('matured');
   });
 
+  test('a premium is not overdue on its due date', () => {
+    // second yearly premium falls due 2021-04-10
+    const s = computePolicyStatus(yearly, 1, '2021-04-10', 30);
+    expect(s.status).toBe('due_soon');
+    expect(s.overdueCount).toBe(0);
+    expect(s.overdueAmount).toBe(0);
+  });
+
+  test('an instalment due today is not counted alongside an older missed one', () => {
+    // 2021-04-10 missed; 2022-04-10 falls due today
+    const s = computePolicyStatus(yearly, 1, '2022-04-10', 30);
+    expect(s.status).toBe('lapsed');
+    expect(s.overdueCount).toBe(1);
+    expect(s.overdueAmount).toBe(25000);
+  });
+
   test('paidCount is clamped to total premiums', () => {
     const s = computePolicyStatus(yearly, 999, '2030-01-01', 30);
     expect(s.paidCount).toBe(20);
     expect(s.status).toBe('fully_paid');
+  });
+});
+
+describe('premiums paid up to', () => {
+  // yearly from 2020-04-10: premiums due every 10 April
+  test('an old policy paid up to last year is neither overdue nor lapsed', () => {
+    const s = computePolicyStatus({ ...yearly, premiumsPaidUpTo: '2025-04-10' }, 0, '2026-01-01', 30);
+    expect(s.status).toBe('active');
+    expect(s.paidCount).toBe(6);
+    expect(s.overdueCount).toBe(0);
+    expect(s.overdueAmount).toBe(0);
+    expect(s.nextDueDate).toBe('2026-04-10');
+  });
+
+  test('blank keeps every premium since commencement unpaid', () => {
+    const s = computePolicyStatus({ ...yearly, premiumsPaidUpTo: null }, 0, '2026-01-01', 30);
+    expect(s.status).toBe('lapsed');
+    expect(s.overdueCount).toBe(6);
+    expect(s.nextDueDate).toBe('2020-04-10');
+  });
+
+  test('payments recorded in the app settle instalments after the baseline', () => {
+    const s = computePolicyStatus({ ...yearly, premiumsPaidUpTo: '2024-04-10' }, 1, '2026-01-01', 30);
+    expect(s.paidCount).toBe(6);
+    expect(s.nextDueDate).toBe('2026-04-10');
+  });
+
+  test('monthly collection counts the baseline as settled', () => {
+    const policy = { ...yearly, premiumsPaidUpTo: '2024-04-10' };
+    expect(instalmentsInMonth(policy, 0, '2024-04-01').paid).toBe(1);
+    expect(instalmentsInMonth(policy, 0, '2025-04-01').paid).toBe(0);
   });
 });
 

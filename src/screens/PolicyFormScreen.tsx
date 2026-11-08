@@ -36,6 +36,7 @@ export default function PolicyFormScreen() {
   const [premiumAmount, setPremiumAmount] = useState('');
   const [premiumMode, setPremiumMode] = useState<PremiumMode>('yearly');
   const [commissionRate, setCommissionRate] = useState('');
+  const [premiumsPaidUpTo, setPremiumsPaidUpTo] = useState('');
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -56,6 +57,7 @@ export default function PolicyFormScreen() {
         setPremiumAmount(String(p.premiumAmount));
         setPremiumMode(p.premiumMode);
         setCommissionRate(String(p.commissionRate));
+        setPremiumsPaidUpTo(p.premiumsPaidUpTo ?? '');
         setNotes(p.notes ?? '');
       });
     }
@@ -79,6 +81,25 @@ export default function PolicyFormScreen() {
       Alert.alert('Invalid date', 'Commencement date must be in YYYY-MM-DD format.');
       return;
     }
+    const term = num(policyTermYears);
+    const payingTerm = num(premiumPayingTermYears) || term;
+    if (term <= 0) {
+      Alert.alert('Policy term required', 'Policy term must be more than 0 years.');
+      return;
+    }
+    if (payingTerm <= 0 || payingTerm > term) {
+      Alert.alert('Invalid premium paying term', 'Premium paying term must be more than 0 and at most the policy term.');
+      return;
+    }
+    if (num(premiumAmount) <= 0) {
+      Alert.alert('Premium amount required', 'Premium amount must be more than ₹0.');
+      return;
+    }
+    const paidUpTo = premiumsPaidUpTo.trim();
+    if (paidUpTo && !isISODate(paidUpTo)) {
+      Alert.alert('Invalid date', 'Premiums paid up to must be in YYYY-MM-DD format, or left blank.');
+      return;
+    }
     const data: NewPolicy = {
       clientId,
       policyNumber: policyNumber.trim(),
@@ -86,11 +107,12 @@ export default function PolicyFormScreen() {
       planNumber: planNumber.trim() || null,
       sumAssured: num(sumAssured),
       commencementDate: commencementDate.trim(),
-      policyTermYears: num(policyTermYears),
-      premiumPayingTermYears: num(premiumPayingTermYears) || num(policyTermYears),
+      policyTermYears: term,
+      premiumPayingTermYears: payingTerm,
       premiumAmount: num(premiumAmount),
       premiumMode,
       commissionRate: num(commissionRate),
+      premiumsPaidUpTo: paidUpTo || null,
       notes: notes.trim() || null,
     };
     setSaving(true);
@@ -178,6 +200,17 @@ export default function PolicyFormScreen() {
         />
         <Segmented label="Premium mode" value={premiumMode} options={MODE_OPTIONS} onChange={setPremiumMode} />
         <Field
+          label="Premiums paid up to (YYYY-MM-DD)"
+          value={premiumsPaidUpTo}
+          onChangeText={setPremiumsPaidUpTo}
+          placeholder="Leave blank for a new policy"
+          autoCapitalize="none"
+        />
+        <Text style={styles.hint}>
+          For an existing policy, enter the due date of the last premium paid before adding it here.
+          Record later payments in the app.
+        </Text>
+        <Field
           label="Commission rate (%)"
           value={commissionRate}
           onChangeText={setCommissionRate}
@@ -194,6 +227,7 @@ export default function PolicyFormScreen() {
 const styles = StyleSheet.create({
   clientPicker: { marginBottom: spacing.md },
   noClient: { color: colors.textMuted },
+  hint: { color: colors.textMuted, fontSize: 12, marginTop: -spacing.xs, marginBottom: spacing.md },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: {
     paddingHorizontal: spacing.md,
