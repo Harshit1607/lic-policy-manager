@@ -1,5 +1,6 @@
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Notifications from 'expo-notifications';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text } from 'react-native';
 import { Button, Field, Screen, Segmented } from '../components/ui';
@@ -16,7 +17,6 @@ import {
   REMINDER_OPTIONS,
 } from '../domain/meetings';
 import type { Client } from '../domain/types';
-import { ensureNotificationSetup } from '../services/notifications';
 import { refreshMeetingReminders } from '../services/meetings';
 import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
@@ -116,9 +116,9 @@ export default function MeetingFormScreen() {
     try {
       if (meetingId) await updateMeeting(meetingId, data);
       else await createMeeting(data);
-      // Ask for notification permission when the agent first sets a reminder.
-      const granted = await ensureNotificationSetup().catch(() => false);
+      // Asks for notification permission when the agent first sets a reminder.
       await refreshMeetingReminders();
+      const { granted } = await Notifications.getPermissionsAsync().catch(() => ({ granted: false }));
       if (!granted) {
         Alert.alert('Permission needed', 'Enable notifications in system settings to get reminders.');
       }
