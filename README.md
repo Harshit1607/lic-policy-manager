@@ -7,15 +7,15 @@ Everything is stored on the phone in a local SQLite database. There are no accou
 ## Features
 
 - **Clients (policyholders):** name, phone, address, date of birth, nominee name and relation, notes. Each client page lists all of that client's policies.
-- **Policies:** policy number, plan name and plan number, sum assured, commencement date, policy term, premium paying term, maturity date (derived), premium amount and mode (monthly, quarterly, half-yearly, yearly), and agent commission rate.
-- **Premium status, derived automatically** from the commencement date, mode and recorded payments:
+- **Policies:** policy number, plan name and plan number, sum assured, commencement date, policy term, premium paying term, maturity date (derived), premium amount and mode (monthly, quarterly, half-yearly, yearly), agent commission rate, and an optional "premiums paid up to" date so an existing policy can be entered without re-recording its past payments.
+- **Premium status, derived automatically** from the commencement date, mode, the "premiums paid up to" date and recorded payments:
   - next due date
   - grace period end (LIC rule: 15 days for monthly, 30 days for every other mode)
   - number of overdue instalments and overdue amount
   - status: Active, Due soon, Overdue (in grace), Lapsed (grace elapsed), Fully paid, Matured
 - **Payment history** per policy with receipt number, paid date, late fee and notes.
 - **Due reminders dashboard:** overdue, due this week and due this month, with one-tap Call or WhatsApp to the client (WhatsApp opens with a pre-filled premium reminder message).
-- **Local notifications** a few days before each premium due date and on the day itself (scheduled on the device, no server).
+- **Local notifications** a few days before each premium due within the next 45 days and on the day itself (soonest 100 policies; scheduled on the device, no server, and refreshed each time the dashboard opens).
 - **Search** clients by name or phone, and policies by policy number, client name or plan.
 - **Commission tracking:** commission earned per policy and in total, based on each policy's commission rate and its recorded payments.
 - **Export and backup:** CSV export of all policies (opens in Excel or Google Sheets), full JSON backup through the Android share sheet, and JSON restore.
