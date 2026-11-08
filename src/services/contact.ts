@@ -59,3 +59,11 @@ export function premiumReminderMessage(params: {
     `Kindly pay before the grace period ends to keep the policy in force. Thank you.`
   );
 }
+
+/** Default message to confirm an upcoming meeting with a client or prospect. */
+export function meetingReminderMessage(params: { name: string; when: string; place?: string | null }): string {
+  return (
+    `Dear ${params.name}, this is a reminder of our meeting ${params.when}` +
+    `${params.place ? ` at ${params.place}` : ''}. Please let me know if the time needs to change. Thank you.`
+  );
+}

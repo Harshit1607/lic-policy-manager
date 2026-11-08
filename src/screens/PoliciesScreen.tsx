@@ -57,9 +57,10 @@ export default function PoliciesScreen() {
             <EmptyState
               illustration="documents"
               title="No policies yet"
-              subtitle="Add a client, then register their policies."
+              subtitle="Every policy belongs to a client: add the client first, then add their policies from the client's page or here."
             >
-              <Button title="Add policy" onPress={() => navigation.navigate('PolicyForm')} />
+              <Button title="Add a client first" onPress={() => navigation.navigate('ClientForm')} />
+              <Button title="Add policy" variant="secondary" onPress={() => navigation.navigate('PolicyForm')} />
             </EmptyState>
           )
         }

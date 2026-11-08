@@ -2,7 +2,7 @@ import React from 'react';
 import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 import { colors } from '../theme';
 
-export type IllustrationName = 'welcome' | 'allClear' | 'noResults' | 'people' | 'documents';
+export type IllustrationName = 'welcome' | 'allClear' | 'noResults' | 'people' | 'documents' | 'calendar';
 
 const K = colors.black;
 const W = colors.white;
@@ -124,7 +124,32 @@ function Documents() {
   );
 }
 
+function Calendar() {
+  return (
+    <>
+      <Path d="M26 50c24-20 56 6 82-6s58-18 80 0 26 6 30-2" stroke={K} strokeWidth={1.2} fill="none" />
+      {/* calendar page */}
+      <Rect x={62} y={62} width={92} height={96} rx={8} fill={W} stroke={K} strokeWidth={2} />
+      <Path d="M62 70a8 8 0 0 1 8-8h76a8 8 0 0 1 8 8v14H62Z" fill={K} />
+      <Path d="M82 54v16M134 54v16" stroke={K} strokeWidth={4} strokeLinecap="round" />
+      <Rect x={74} y={96} width={14} height={12} rx={2} fill={G1} stroke={K} strokeWidth={1.2} />
+      <Rect x={94} y={96} width={14} height={12} rx={2} fill={K} />
+      <Rect x={114} y={96} width={14} height={12} rx={2} fill={G1} stroke={K} strokeWidth={1.2} />
+      <Rect x={74} y={116} width={14} height={12} rx={2} fill={G1} stroke={K} strokeWidth={1.2} />
+      <Rect x={94} y={116} width={14} height={12} rx={2} fill={G1} stroke={K} strokeWidth={1.2} />
+      {/* clock */}
+      <Circle cx={156} cy={136} r={24} fill={K} />
+      <Circle cx={156} cy={136} r={18} fill={W} />
+      <Path d="M156 124v12l8 6" stroke={K} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <Plant x={44} y={168} />
+      <Plant x={202} y={168} flip />
+      <Ground />
+    </>
+  );
+}
+
 const ART: Record<IllustrationName, () => React.JSX.Element> = {
+  calendar: Calendar,
   welcome: Welcome,
   allClear: AllClear,
   noResults: NoResults,

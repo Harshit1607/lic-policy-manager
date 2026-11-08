@@ -21,6 +21,7 @@ import { deletePayment, listPayments } from '../db/payments';
 import { computePolicyStatus, maturityDate, statusLabel, totalCommission } from '../domain/premium';
 import { formatCurrency, formatDate } from '../domain/format';
 import { callClient, premiumReminderMessage, whatsAppClient } from '../services/contact';
+import { refreshMeetingReminders } from '../services/meetings';
 import type { Client, Payment, PolicyStatusSummary } from '../domain/types';
 import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
@@ -63,6 +64,8 @@ export default function PolicyDetailScreen() {
         style: 'destructive',
         onPress: async () => {
           await deletePolicy(policyId);
+          // Meetings linked to this policy keep going, just without the link.
+          await refreshMeetingReminders();
           navigation.goBack();
         },
       },

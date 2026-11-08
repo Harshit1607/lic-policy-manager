@@ -14,6 +14,9 @@ export type RootStackParamList = {
   PolicyForm: { policyId?: number; clientId?: number } | undefined;
   PolicyDetail: { policyId: number };
   PaymentForm: { policyId: number };
+  Meetings: undefined;
+  MeetingForm: { meetingId?: number; clientId?: number; policyId?: number } | undefined;
+  MeetingDetail: { meetingId: number };
 };
 
 declare global {

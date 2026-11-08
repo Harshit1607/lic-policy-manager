@@ -3,7 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { Icon } from '../components/Icon';
 import DashboardScreen from '../screens/DashboardScreen';
 import ClientsScreen from '../screens/ClientsScreen';
@@ -14,6 +14,9 @@ import PolicyFormScreen from '../screens/PolicyFormScreen';
 import PolicyDetailScreen from '../screens/PolicyDetailScreen';
 import PaymentFormScreen from '../screens/PaymentFormScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import MeetingsScreen from '../screens/MeetingsScreen';
+import MeetingFormScreen from '../screens/MeetingFormScreen';
+import MeetingDetailScreen from '../screens/MeetingDetailScreen';
 import { colors, IconName } from '../theme';
 import type { RootStackParamList, TabParamList } from './types';
 
@@ -45,18 +48,33 @@ const screenHeader = {
   headerShadowVisible: false,
 };
 
-/** Top-bar person icon (as in the reference) that opens the agent's settings. */
-function ProfileButton() {
+/**
+ * Top-bar actions (after the reference's top bar): a calendar icon that opens
+ * Meetings and a person icon that opens the agent's settings.
+ */
+function TopBarActions({ showProfile = true }: { showProfile?: boolean }) {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   return (
-    <TouchableOpacity
-      accessibilityRole="button"
-      accessibilityLabel="Agent settings"
-      onPress={() => navigation.navigate('Tabs', { screen: 'Settings' })}
-      style={{ paddingHorizontal: 16, paddingVertical: 6 }}
-    >
-      <Icon name="person" size={22} color={colors.white} />
-    </TouchableOpacity>
+    <View style={{ flexDirection: 'row', alignItems: 'center', paddingRight: 8 }}>
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Meetings"
+        onPress={() => navigation.navigate('Meetings')}
+        style={{ paddingHorizontal: 8, paddingVertical: 6 }}
+      >
+        <Icon name="calendar" size={22} color={colors.white} />
+      </TouchableOpacity>
+      {showProfile ? (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Agent settings"
+          onPress={() => navigation.navigate('Tabs', { screen: 'Settings' })}
+          style={{ paddingHorizontal: 8, paddingVertical: 6 }}
+        >
+          <Icon name="person" size={22} color={colors.white} />
+        </TouchableOpacity>
+      ) : null}
+    </View>
   );
 }
 
@@ -65,7 +83,7 @@ function Tabs() {
     <Tab.Navigator
       screenOptions={{
         ...screenHeader,
-        headerRight: () => <ProfileButton />,
+        headerRight: () => <TopBarActions />,
         tabBarActiveTintColor: colors.black,
         tabBarInactiveTintColor: colors.textFaint,
         tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
@@ -82,7 +100,7 @@ function Tabs() {
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ tabBarIcon: tabIcon('Settings'), headerRight: undefined }}
+        options={{ tabBarIcon: tabIcon('Settings'), headerRight: () => <TopBarActions showProfile={false} /> }}
       />
     </Tab.Navigator>
   );
@@ -97,6 +115,9 @@ export default function RootNavigator() {
       <Stack.Screen name="PolicyForm" component={PolicyFormScreen} options={{ title: 'Policy' }} />
       <Stack.Screen name="PolicyDetail" component={PolicyDetailScreen} options={{ title: 'Policy' }} />
       <Stack.Screen name="PaymentForm" component={PaymentFormScreen} options={{ title: 'Record payment' }} />
+      <Stack.Screen name="Meetings" component={MeetingsScreen} options={{ title: 'Meetings' }} />
+      <Stack.Screen name="MeetingForm" component={MeetingFormScreen} options={{ title: 'Meeting' }} />
+      <Stack.Screen name="MeetingDetail" component={MeetingDetailScreen} options={{ title: 'Meeting' }} />
     </Stack.Navigator>
   );
 }

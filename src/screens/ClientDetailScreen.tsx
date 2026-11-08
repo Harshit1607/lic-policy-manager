@@ -2,7 +2,11 @@ import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navig
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { MeetingRow } from '../components/MeetingRow';
 import { PolicyRow } from '../components/PolicyRow';
+import { listMeetingsForClient, MeetingWithMeta } from '../db/meetings';
+import { groupMeetings } from '../domain/meetings';
+import { refreshMeetingReminders } from '../services/meetings';
 import {
   Avatar,
   Button,
@@ -31,6 +35,7 @@ export default function ClientDetailScreen() {
   const { clientId } = route.params;
   const [client, setClient] = useState<Client | null>(null);
   const [policies, setPolicies] = useState<PolicyWithStatus[]>([]);
+  const [meetings, setMeetings] = useState<MeetingWithMeta[]>([]);
 
   const load = useCallback(async () => {
     const c = await getClient(clientId);
@@ -38,6 +43,9 @@ export default function ClientDetailScreen() {
     navigation.setOptions({ title: 'Client' });
     const pols = await listPoliciesForClient(clientId);
     setPolicies(pols.map((p) => withStatus(p)));
+    // Upcoming first, then past and done (most recent first).
+    const g = groupMeetings(await listMeetingsForClient(clientId));
+    setMeetings([...g.upcoming, ...g.past, ...g.done]);
   }, [clientId, navigation]);
 
   useFocusEffect(
@@ -47,13 +55,15 @@ export default function ClientDetailScreen() {
   );
 
   const confirmDelete = () => {
-    Alert.alert('Delete client?', 'This removes the client and all their policies and payments.', [
+    Alert.alert('Delete client?', 'This removes the client and all their policies, payments and meetings.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: async () => {
           await deleteClient(clientId);
+          // Their meetings are deleted with them; drop those reminders too.
+          await refreshMeetingReminders();
           navigation.goBack();
         },
       },
@@ -109,6 +119,17 @@ export default function ClientDetailScreen() {
           <Text style={styles.noPolicy}>No policies yet for this client.</Text>
         ) : (
           policies.map((item) => <PolicyRow key={item.policy.id} item={item} showClient={false} />)
+        )}
+
+        <SectionHeader
+          title={`Meetings (${meetings.length})`}
+          actionLabel="Add meeting"
+          onAction={() => navigation.navigate('MeetingForm', { clientId })}
+        />
+        {meetings.length === 0 ? (
+          <Text style={styles.noPolicy}>No meetings with this client yet.</Text>
+        ) : (
+          meetings.map((m) => <MeetingRow key={m.id} meeting={m} showPerson={false} />)
         )}
 
         <SectionHeader title="Details" />

@@ -1,6 +1,9 @@
+import type { Meeting } from '../domain/meetings';
+import { meetingStart, purposeLabel, timeLabel } from '../domain/meetings';
 import type { Client, Payment, Policy } from '../domain/types';
 
-export const BACKUP_VERSION = 1;
+/** 2 added meetings; version-1 backups (no meetings) still restore. */
+export const BACKUP_VERSION = 2;
 
 export interface BackupData {
   version: number;
@@ -8,15 +11,22 @@ export interface BackupData {
   clients: Client[];
   policies: Policy[];
   payments: Payment[];
+  meetings: Meeting[];
 }
 
-export function buildBackup(clients: Client[], policies: Policy[], payments: Payment[]): BackupData {
+export function buildBackup(
+  clients: Client[],
+  policies: Policy[],
+  payments: Payment[],
+  meetings: Meeting[] = [],
+): BackupData {
   return {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     clients,
     policies,
     payments,
+    meetings,
   };
 }
 
@@ -41,12 +51,17 @@ export function parseBackup(raw: string): BackupData {
   if (!Array.isArray(data.clients) || !Array.isArray(data.policies) || !Array.isArray(data.payments)) {
     throw new BackupParseError('Backup is missing clients, policies or payments.');
   }
+  if (data.meetings !== undefined && !Array.isArray(data.meetings)) {
+    throw new BackupParseError('Backup meetings are not a list.');
+  }
   return {
     version: typeof data.version === 'number' ? data.version : BACKUP_VERSION,
     exportedAt: typeof data.exportedAt === 'string' ? data.exportedAt : new Date().toISOString(),
     clients: data.clients as Client[],
     policies: data.policies as Policy[],
     payments: data.payments as Payment[],
+    // Backups made before meetings existed have none.
+    meetings: (data.meetings ?? []) as Meeting[],
   };
 }
 
@@ -119,6 +134,47 @@ export function policiesToCSV(
       r.overdueAmount,
       r.paidCount,
       r.totalPremiums,
+    ]),
+  );
+}
+
+/** A CSV of meetings, soonest first, with who, when, purpose and outcome. */
+export function meetingsToCSV(
+  rows: (Pick<
+    Meeting,
+    'date' | 'time' | 'purpose' | 'place' | 'reminderMinutes' | 'done' | 'outcome' | 'notes' | 'clientId'
+  > & { personName: string | null; personPhone: string | null; policyNumber: string | null })[],
+): string {
+  const headers = [
+    'Date',
+    'Time',
+    'With',
+    'Phone',
+    'Client or Prospect',
+    'Policy Number',
+    'Purpose',
+    'Place',
+    'Status',
+    'Outcome',
+    'Notes',
+  ];
+  const sorted = [...rows].sort(
+    (a, b) => (meetingStart(a)?.getTime() ?? 0) - (meetingStart(b)?.getTime() ?? 0),
+  );
+  return toCSV(
+    headers,
+    sorted.map((m) => [
+      m.date,
+      timeLabel(m.time),
+      m.personName,
+      m.personPhone,
+      m.clientId ? 'Client' : 'Prospect',
+      m.policyNumber,
+      purposeLabel(m.purpose),
+      m.place,
+      m.done ? 'Done' : 'Open',
+      m.outcome,
+      m.notes,
     ]),
   );
 }

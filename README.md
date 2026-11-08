@@ -16,9 +16,10 @@ Everything is stored on the phone in a local SQLite database. There are no accou
 - **Payment history** per policy with receipt number, paid date, late fee and notes.
 - **Due reminders dashboard:** overdue, due this week and due this month, with one-tap Call or WhatsApp to the client (WhatsApp opens with a pre-filled premium reminder message).
 - **Local notifications** a few days before each premium due within the next 45 days and on the day itself (soonest 100 policies; scheduled on the device, no server, and refreshed each time the dashboard opens).
+- **Meetings:** plan a meeting with a client (optionally linked to one of their policies) or with a prospect who is not a client yet (typed name and phone). Each meeting has a date and time, place, purpose (new policy pitch, premium collection, claim/maturity paperwork, other), notes and a reminder (at the time, 15 minutes, 1 hour or 1 day before; default 1 hour). The reminder is a local notification that is rescheduled on edit and cancelled when the meeting is deleted or marked done; tapping it opens the meeting. Upcoming meetings for today and the next three days show on Home, the full list (upcoming, past not marked done, and done) opens from the calendar icon in the top bar, and each client page lists that client's meetings with an "Add meeting" action. Meetings can be marked done with an optional outcome note, and the client can be called or messaged on WhatsApp from the meeting.
 - **Search** clients by name or phone, and policies by policy number, client name or plan.
 - **Commission tracking:** commission earned per policy and in total, based on each policy's commission rate and its recorded payments.
-- **Export and backup:** CSV export of all policies (opens in Excel or Google Sheets), full JSON backup through the Android share sheet, and JSON restore.
+- **Export and backup:** CSV export of all policies and of all meetings (opens in Excel or Google Sheets), full JSON backup (clients, policies, payments and meetings) through the Android share sheet, and JSON restore. Older backups without meetings still restore.
 
 ## Design
 

@@ -5,6 +5,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import {
   Button,
   Card,
+  SectionHeader,
   EmptyState,
   HeaderBlock,
   IconButton,
@@ -27,6 +28,9 @@ import {
 import { loadPoliciesWithStatus } from '../services/queries';
 import { rescheduleDueReminders } from '../services/notifications';
 import { callClient, premiumReminderMessage, whatsAppClient } from '../services/contact';
+import { MeetingRow } from '../components/MeetingRow';
+import { listMeetings, MeetingWithMeta } from '../db/meetings';
+import { upcomingWithinDays } from '../domain/meetings';
 import { colors, spacing } from '../theme';
 import type { RootStackParamList } from '../navigation/types';
 
@@ -114,6 +118,8 @@ export default function DashboardScreen() {
   const [buckets, setBuckets] = useState<DashboardBuckets | null>(null);
   const [month, setMonth] = useState<MonthInstalments | null>(null);
   const [policyCount, setPolicyCount] = useState(0);
+  const [meetingCount, setMeetingCount] = useState(0);
+  const [soonMeetings, setSoonMeetings] = useState<MeetingWithMeta[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
@@ -122,6 +128,10 @@ export default function DashboardScreen() {
     setPolicyCount(items.length);
     setBuckets(buildDashboard(metas));
     setMonth(monthlyCollection(metas));
+    const meetings = await listMeetings();
+    setMeetingCount(meetings.length);
+    // Today and the next three days.
+    setSoonMeetings(upcomingWithinDays(meetings, 3));
     // Keep local reminders in sync with current dues (best effort, local only).
     rescheduleDueReminders(items).catch(() => undefined);
   }, []);
@@ -140,7 +150,7 @@ export default function DashboardScreen() {
 
   if (!buckets || !month) return <Screen />;
 
-  if (policyCount === 0) {
+  if (policyCount === 0 && meetingCount === 0) {
     return (
       <Screen style={styles.welcome}>
         <ScrollView contentContainerStyle={styles.welcomeScroll}>
@@ -184,6 +194,24 @@ export default function DashboardScreen() {
             <StatTile value={String(buckets.dueThisMonth.length)} label="due later this month" />
           </Row>
         </HeaderBlock>
+
+        <SectionHeader
+          title="Upcoming meetings"
+          actionLabel="Meeting"
+          onAction={() => navigation.navigate('MeetingForm')}
+        />
+        {soonMeetings.length === 0 ? (
+          <Text style={styles.muted}>No meetings in the next few days.</Text>
+        ) : (
+          soonMeetings.map((m) => <MeetingRow key={m.id} meeting={m} />)
+        )}
+        <Button
+          title="All meetings"
+          variant="ghost"
+          chevron
+          onPress={() => navigation.navigate('Meetings')}
+          style={styles.allMeetings}
+        />
 
         {noDues ? (
           <EmptyState
@@ -252,4 +280,6 @@ const styles = StyleSheet.create({
   overdue: { marginTop: spacing.xs, color: colors.text, fontWeight: '800', fontSize: 13 },
   actions: { marginTop: spacing.md, gap: spacing.sm },
   recordBtn: { flex: 1 },
+  muted: { color: colors.textMuted, marginHorizontal: spacing.lg, marginTop: spacing.xs },
+  allMeetings: { alignSelf: 'flex-start', marginHorizontal: spacing.sm },
 });

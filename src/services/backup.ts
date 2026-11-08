@@ -7,8 +7,10 @@ import { getDatabase, nowISO } from '../db/database';
 import { listClients } from '../db/clients';
 import { listPolicies } from '../db/policies';
 import { listAllPayments } from '../db/payments';
+import { listMeetings } from '../db/meetings';
 import {
   buildBackup,
+  meetingsToCSV,
   parseBackup,
   policiesToCSV,
   serializeBackup,
@@ -27,13 +29,17 @@ async function writeAndShare(fileName: string, contents: string, mimeType: strin
 
 /** Export a full JSON backup and open the share sheet. */
 export async function exportJsonBackup(): Promise<string> {
-  const [clients, policiesMeta, payments] = await Promise.all([
+  const [clients, policiesMeta, payments, meetingsMeta] = await Promise.all([
     listClients(),
     listPolicies(),
     listAllPayments(),
+    listMeetings(),
   ]);
   const policies = policiesMeta.map(({ clientName: _c, clientPhone: _ph, paidCount: _p, ...rest }) => rest);
-  const backup = buildBackup(clients, policies, payments);
+  const meetings = meetingsMeta.map(
+    ({ personName: _n, personPhone: _ph, policyNumber: _pn, ...rest }) => rest,
+  );
+  const backup = buildBackup(clients, policies, payments, meetings);
   const fileName = `lic-backup-${todayISO()}.json`;
   return writeAndShare(fileName, serializeBackup(backup), 'application/json');
 }
@@ -65,10 +71,17 @@ export async function exportPoliciesCsv(): Promise<string> {
   return writeAndShare(fileName, policiesToCSV(rows), 'text/csv');
 }
 
+/** Export all meetings as CSV and open the share sheet. */
+export async function exportMeetingsCsv(): Promise<string> {
+  const meetings = await listMeetings();
+  return writeAndShare(`lic-meetings-${todayISO()}.csv`, meetingsToCSV(meetings), 'text/csv');
+}
+
 export interface RestoreResult {
   clients: number;
   policies: number;
   payments: number;
+  meetings: number;
 }
 
 /**
@@ -91,7 +104,7 @@ export async function importJsonBackup(): Promise<RestoreResult | null> {
   const ts = nowISO();
 
   await db.withTransactionAsync(async () => {
-    await db.execAsync('DELETE FROM payments; DELETE FROM policies; DELETE FROM clients;');
+    await db.execAsync('DELETE FROM meetings; DELETE FROM payments; DELETE FROM policies; DELETE FROM clients;');
     for (const c of backup.clients) {
       await db.runAsync(
         `INSERT INTO clients (id, name, phone, address, dob, nomineeName, nomineeRelation, notes, createdAt, updatedAt)
@@ -153,11 +166,38 @@ export async function importJsonBackup(): Promise<RestoreResult | null> {
         ],
       );
     }
+    for (const m of backup.meetings) {
+      await db.runAsync(
+        `INSERT INTO meetings
+          (id, clientId, prospectName, prospectPhone, policyId, date, time, place, purpose, notes,
+           reminderMinutes, done, outcome, completedAt, createdAt, updatedAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          m.id,
+          m.clientId ?? null,
+          m.prospectName ?? null,
+          m.prospectPhone ?? null,
+          m.policyId ?? null,
+          m.date,
+          m.time,
+          m.place ?? null,
+          m.purpose ?? 'other',
+          m.notes ?? null,
+          m.reminderMinutes ?? 60,
+          m.done ? 1 : 0,
+          m.outcome ?? null,
+          m.completedAt ?? null,
+          m.createdAt ?? ts,
+          m.updatedAt ?? ts,
+        ],
+      );
+    }
   });
 
   return {
     clients: backup.clients.length,
     policies: backup.policies.length,
     payments: backup.payments.length,
+    meetings: backup.meetings.length,
   };
 }

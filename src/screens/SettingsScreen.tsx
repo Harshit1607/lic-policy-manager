@@ -17,7 +17,8 @@ import { listAllPayments } from '../db/payments';
 import { listClients } from '../db/clients';
 import { commissionForAmount } from '../domain/premium';
 import { formatCurrency } from '../domain/format';
-import { exportJsonBackup, exportPoliciesCsv, importJsonBackup } from '../services/backup';
+import { exportJsonBackup, exportMeetingsCsv, exportPoliciesCsv, importJsonBackup } from '../services/backup';
+import { refreshMeetingReminders } from '../services/meetings';
 import { ensureNotificationSetup, rescheduleDueReminders } from '../services/notifications';
 import { loadPoliciesWithStatus } from '../services/queries';
 import { colors, IconName, spacing } from '../theme';
@@ -83,10 +84,11 @@ export default function SettingsScreen() {
           run('restore', async () => {
             const result = await importJsonBackup();
             if (result) {
+              await refreshMeetingReminders();
               await load();
               Alert.alert(
                 'Restore complete',
-                `${result.clients} clients, ${result.policies} policies and ${result.payments} payments restored.`,
+                `${result.clients} clients, ${result.policies} policies, ${result.payments} payments and ${result.meetings} meetings restored.`,
               );
             }
           }),
@@ -102,7 +104,8 @@ export default function SettingsScreen() {
       }
       const items = await loadPoliciesWithStatus();
       const n = await rescheduleDueReminders(items);
-      Alert.alert('Reminders scheduled', `${n} upcoming premium reminder(s) set.`);
+      const m = await refreshMeetingReminders();
+      Alert.alert('Reminders scheduled', `${n} premium reminder(s) and ${m} meeting reminder(s) set.`);
     });
 
   const busyIcon = (key: string, icon: IconName) =>
@@ -141,8 +144,19 @@ export default function SettingsScreen() {
           }
         />
         <ListRow
+          title="Export meetings (CSV)"
+          subtitle="Every meeting with outcome and notes"
+          leading={<Icon name="calendar" size={22} />}
+          trailing={busyIcon('mcsv', 'download')}
+          onPress={() =>
+            run('mcsv', async () => {
+              await exportMeetingsCsv();
+            })
+          }
+        />
+        <ListRow
           title="Backup all data (JSON)"
-          subtitle="Clients, policies and payments"
+          subtitle="Clients, policies, payments and meetings"
           leading={<Icon name="download" size={22} />}
           trailing={busyIcon('json', 'chevronRight')}
           onPress={() =>
@@ -161,12 +175,12 @@ export default function SettingsScreen() {
 
         <SectionTitle>Reminders</SectionTitle>
         <Text style={styles.muted}>
-          Local notifications remind you a few days before each premium falls due. They work offline and
-          send no data anywhere.
+          Local notifications remind you a few days before each premium falls due and before each
+          meeting. They work offline and send no data anywhere.
         </Text>
         <ListRow
           title="Enable & refresh reminders"
-          subtitle="Schedule notifications for upcoming dues"
+          subtitle="Schedule notifications for dues and meetings"
           leading={<Icon name="bell" size={22} />}
           trailing={busyIcon('notif', 'chevronRight')}
           onPress={refreshReminders}
