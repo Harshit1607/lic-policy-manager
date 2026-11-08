@@ -34,6 +34,7 @@ src/db/                 expo-sqlite schema and CRUD for clients, policies, payme
 src/services/           aggregation, CSV/JSON export & restore, notifications, call/WhatsApp
 src/screens/            UI screens
 src/navigation/         bottom tabs + stack navigator
+plugins/                Expo config plugin for release APK signing + its test
 ```
 
 ## Development
@@ -42,7 +43,7 @@ Requirements: Node.js 20+ and npm.
 
 ```bash
 npm install
-npm test            # unit tests (premium/due-date and meeting logic, CSV/JSON, aggregation)
+npm test            # unit tests (premium/due-date and meeting logic, CSV/JSON, aggregation, release signing)
 npm run typecheck   # TypeScript
 npx expo start      # run in Expo Go or a dev build
 ```
@@ -56,7 +57,6 @@ Requirements:
 - JDK 17
 - Android SDK with: `platforms;android-36`, `platforms;android-37.0`, `build-tools;37.0.0`, `ndk;27.1.12297006`, `cmake;3.22.1`, `platform-tools` (install with `sdkmanager`)
 - `ANDROID_HOME` pointing at the SDK (or an `android/local.properties` with `sdk.dir=...`)
-
 - The app's permanent release keystore and its four `LIC_*` values (see [Signing](#signing))
 
 Steps:
